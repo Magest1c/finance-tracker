@@ -1,0 +1,686 @@
+openapi: 3.1.0
+info:
+  title: API Finance Tracker
+  version: 1.0.0
+  description: >-
+    REST API для пользователей, счетов, категорий доходов и расходов, транзакций,
+    фильтров и месячных финансовых отчётов. Денежные суммы передаются целыми
+    числами в минимальных единицах валюты (копейках для RUB).
+servers:
+  - url: http://localhost:8080
+    description: Локальное окружение
+tags:
+  - name: Система
+  - name: Аутентификация
+  - name: Счета
+  - name: Категории
+  - name: Транзакции
+  - name: Отчёты
+paths:
+  /health:
+    get:
+      tags: [Система]
+      summary: Проверить состояние сервиса
+      operationId: getHealth
+      responses:
+        "200":
+          description: Сервис работает
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                status: ok
+  /auth/register:
+    post:
+      tags: [Аутентификация]
+      summary: Зарегистрировать пользователя
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Пользователь зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Пользователь с таким email уже существует
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+  /auth/login:
+    post:
+      tags: [Аутентификация]
+      summary: Выполнить вход и получить Bearer-токен, хранящийся в памяти
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+  /accounts:
+    post:
+      tags: [Счета]
+      summary: Создать счёт
+      operationId: createAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountRequest"
+      responses:
+        "201":
+          description: Счёт создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    get:
+      tags: [Счета]
+      summary: Получить счета пользователя с сортировкой по id
+      operationId: listAccounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "200":
+          description: Список счетов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /categories:
+    post:
+      tags: [Категории]
+      summary: Создать категорию дохода или расхода
+      operationId: createCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryRequest"
+      responses:
+        "201":
+          description: Категория создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    get:
+      tags: [Категории]
+      summary: Получить категории пользователя с сортировкой по id
+      operationId: listCategories
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "200":
+          description: Список категорий
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /transactions:
+    post:
+      tags: [Транзакции]
+      summary: Создать транзакцию
+      operationId: createTransaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTransactionRequest"
+      responses:
+        "201":
+          description: Транзакция создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    get:
+      tags: [Транзакции]
+      summary: Получить и отфильтровать транзакции
+      operationId: listTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransactionType"
+        - name: account_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: from
+          in: query
+          description: Временная метка RFC3339, включённая в диапазон
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Временная метка RFC3339, исключённая из диапазона
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Страница отфильтрованных транзакций с сортировкой по occurred_at по убыванию
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /transactions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+      - $ref: "#/components/parameters/UserID"
+    patch:
+      tags: [Транзакции]
+      summary: Изменить сумму, описание или время транзакции
+      operationId: updateTransaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTransactionRequest"
+      responses:
+        "200":
+          description: Транзакция изменена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+    delete:
+      tags: [Транзакции]
+      summary: Удалить транзакцию
+      operationId: deleteTransaction
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Транзакция удалена; тело ответа отсутствует
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /reports/monthly:
+    get:
+      tags: [Отчёты]
+      summary: Сформировать месячный отчёт по счёту
+      operationId: getMonthlySummary
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+        - name: account_id
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: month
+          in: query
+          required: true
+          description: Календарный месяц в формате YYYY-MM
+          schema:
+            type: string
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$"
+            example: 2026-08
+      responses:
+        "200":
+          description: Месячный отчёт
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlySummary"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    UserID:
+      name: user_id
+      in: query
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  responses:
+    BadRequest:
+      description: Некорректные данные запроса
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Bearer-токен отсутствует или невалиден
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Аутентифицированный пользователь запросил ресурсы другого пользователя
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Content-Type отличается от application/json
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+    RegisterResponse:
+      type: object
+      additionalProperties: false
+      required: [message, id, email, name]
+      properties:
+        message:
+          type: string
+          const: user registered
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [message, email, name, token]
+      properties:
+        message:
+          type: string
+          const: login successful
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        token:
+          type: string
+          minLength: 40
+    CreateAccountRequest:
+      type: object
+      additionalProperties: false
+      required: [user_id, name, currency]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          pattern: "^[A-Za-z]{3}$"
+          example: RUB
+    Account:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, name, currency]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+    TransactionType:
+      type: string
+      enum: [income, expense]
+    CreateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required: [user_id, name, type]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+        type:
+          $ref: "#/components/schemas/TransactionType"
+    Category:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, name, type]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+        type:
+          $ref: "#/components/schemas/TransactionType"
+    CreateTransactionRequest:
+      type: object
+      additionalProperties: false
+      required: [user_id, account_id, category_id, amount, occurred_at]
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        category_id:
+          type: integer
+          format: int64
+          minimum: 1
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Денежная сумма в минимальных единицах валюты
+        description:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    Transaction:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, account_id, category_id, type, amount, description, occurred_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+        account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        category_id:
+          type: integer
+          format: int64
+          minimum: 1
+        type:
+          $ref: "#/components/schemas/TransactionType"
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        description:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    UpdateTransactionRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        amount:
+          type: integer
+          format: int64
+          minimum: 1
+        description:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    TransactionList:
+      type: object
+      additionalProperties: false
+      required: [items, count, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        count:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+    MonthlySummary:
+      type: object
+      additionalProperties: false
+      required: [month, account_id, currency, income, expense, balance, transaction_count]
+      properties:
+        month:
+          type: string
+          example: 2026-08
+        account_id:
+          type: integer
+          format: int64
+          minimum: 1
+        currency:
+          type: string
+          example: RUB
+        income:
+          type: integer
+          format: int64
+        expense:
+          type: integer
+          format: int64
+        balance:
+          type: integer
+          format: int64
+        transaction_count:
+          type: integer
+          minimum: 0

@@ -1,0 +1,11 @@
+.cache/
+.pytest_cache/
+.idea/
+.vscode/
+*.py[cod]
+*.exe
+*.out
+coverage.out
+coverageprofile
+coverage
+coverage.html

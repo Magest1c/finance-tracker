@@ -1,0 +1,83 @@
+name: quality-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go-quality:
+    name: Go quality and integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Verify formatting
+        run: test -z "$(gofmt -l ./cmd ./tests)"
+
+      - name: Run static analysis
+        run: go vet ./...
+
+      - name: Run tests with race detector and coverage
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./cmd/api
+
+      - name: Upload Go coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: coverage.out
+
+  black-box-api:
+    name: Go black-box API tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Run API regression suite
+        run: go test -v ./tests/api
+
+  container-smoke:
+    name: Container smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build image
+        run: docker build -t finance-tracker:ci .
+
+      - name: Start container
+        run: docker run --rm -d --name finance-tracker-ci -p 8080:8080 finance-tracker:ci
+
+      - name: Wait for health endpoint
+        run: |
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs finance-tracker-ci
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker stop finance-tracker-ci || true

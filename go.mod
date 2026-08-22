@@ -1,0 +1,19 @@
+module finance-tracker
+
+go 1.26.2
+
+require (
+	github.com/getkin/kin-openapi v0.147.0
+	github.com/go-chi/chi/v5 v5.3.0
+	golang.org/x/crypto v0.53.0
+)
+
+require (
+	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
+	golang.org/x/text v0.38.0 // indirect
+)

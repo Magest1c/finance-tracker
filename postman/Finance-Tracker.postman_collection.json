@@ -1,0 +1,284 @@
+{
+  "info": {
+    "_postman_id": "96528d8a-c4e2-49a8-8cc5-financeqa2026",
+    "name": "Finance Tracker — дымовое тестирование API",
+    "description": "Последовательный дымовой сценарий: состояние сервиса, регистрация, вход, счёт, категория, транзакция, фильтры, отчёт, изменение и удаление.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('email')) {",
+          "  pm.collectionVariables.set('email', `qa.${Date.now()}@example.com`);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "email", "value": "" },
+    { "key": "password", "value": "StrongPass123!" },
+    { "key": "userId", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "accountId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "transactionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Проверка состояния",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 200', () => pm.response.to.have.status(200));",
+              "pm.test('Сервис работает', () => pm.expect(pm.response.json()).to.eql({status: 'ok'}));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Регистрация",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"name\": \"QA-кандидат\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/register"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.expect(body).to.not.have.property('password');",
+              "pm.collectionVariables.set('userId', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Вход",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": "{{baseUrl}}/auth/login"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Создание счёта",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": {{userId}},\n  \"name\": \"Основной\",\n  \"currency\": \"rub\"\n}"
+        },
+        "url": "{{baseUrl}}/accounts"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.expect(body.currency).to.eql('RUB');",
+              "pm.collectionVariables.set('accountId', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Создание категории расходов",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": {{userId}},\n  \"name\": \"Продукты\",\n  \"type\": \"expense\"\n}"
+        },
+        "url": "{{baseUrl}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.expect(body.type).to.eql('expense');",
+              "pm.collectionVariables.set('categoryId', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Создание транзакции",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": {{userId}},\n  \"account_id\": {{accountId}},\n  \"category_id\": {{categoryId}},\n  \"amount\": 250000,\n  \"description\": \"Покупка продуктов\",\n  \"occurred_at\": \"2026-08-18T10:00:00Z\"\n}"
+        },
+        "url": "{{baseUrl}}/transactions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 201', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.expect(body.type).to.eql('expense');",
+              "pm.collectionVariables.set('transactionId', body.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Фильтрация транзакций",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/transactions?user_id={{userId}}&type=expense&from=2026-08-01T00%3A00%3A00Z&to=2026-09-01T00%3A00%3A00Z&limit=20&offset=0"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.expect(body.count).to.eql(1);",
+              "pm.expect(body.items[0].id).to.eql(Number(pm.collectionVariables.get('transactionId')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Месячный отчёт",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/reports/monthly?user_id={{userId}}&account_id={{accountId}}&month=2026-08"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 200', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.expect(body.expense).to.eql(250000);",
+              "pm.expect(body.balance).to.eql(-250000);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Изменение транзакции",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 300000,\n  \"description\": \"Обновлённая покупка продуктов\"\n}"
+        },
+        "url": "{{baseUrl}}/transactions/{{transactionId}}?user_id={{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 200', () => pm.response.to.have.status(200));",
+              "pm.expect(pm.response.json().amount).to.eql(300000);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Удаление транзакции",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/transactions/{{transactionId}}?user_id={{userId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Статус ответа 204', () => pm.response.to.have.status(204));",
+              "pm.test('Тело ответа пустое', () => pm.expect(pm.response.text()).to.eql(''));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
